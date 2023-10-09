@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ValidationPipe,
+  Session,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { UserService } from './user.service';
@@ -22,8 +23,12 @@ export class UserController {
   }
 
   @Post('login')
-  login(@Body(ValidationPipe) user: LoginDto) {
-    return this.userService.login(user);
+  async login(@Body(ValidationPipe) user: LoginDto, @Session() session) {
+    const _foundedUser = await this.userService.login(user);
+    session.user = {
+      username: _foundedUser.username,
+    };
+    return 'success';
     // console.log(_foundedUser);
   }
 
