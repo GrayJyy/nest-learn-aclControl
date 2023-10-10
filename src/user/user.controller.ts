@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { UserService } from './user.service';
+import { Request } from 'express';
+import { RegisterDto } from './dto/register.dto';
 
 @Controller('user')
 export class UserController {
@@ -23,7 +25,11 @@ export class UserController {
   }
 
   @Post('login')
-  async login(@Body(ValidationPipe) user: LoginDto, @Session() session) {
+  async login(
+    @Body(ValidationPipe) user: LoginDto,
+    @Session()
+    session: Request['session'],
+  ) {
     const _foundedUser = await this.userService.login(user);
     session.user = {
       username: _foundedUser.username,
@@ -33,5 +39,7 @@ export class UserController {
   }
 
   @Post('register')
-  register() {}
+  async register(@Body(ValidationPipe) user: RegisterDto) {
+    return await this.userService.register(user);
+  }
 }

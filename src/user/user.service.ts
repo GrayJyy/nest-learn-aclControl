@@ -1,9 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { LoginDto } from './dto/login.dto';
 import { Permission } from './entities/permission.entity';
 import { User } from './entities/user.entity';
+import { RegisterDto } from './dto/register.dto';
 // import * as crypto from 'crypto';
 
 // const md5 = (str: string) => {
@@ -14,8 +15,10 @@ import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger();
+
   @InjectEntityManager()
-  entityManager: EntityManager;
+  private readonly entityManager: EntityManager;
 
   async initData() {
     const permission1 = new Permission();
@@ -81,6 +84,32 @@ export class UserService {
       throw new HttpException('用户未注册', HttpStatus.NOT_ACCEPTABLE);
     if (_foundedUser.password !== user.password)
       throw new HttpException('密码错误', HttpStatus.NOT_ACCEPTABLE);
+    return _foundedUser;
+  }
+
+  async register(user: RegisterDto) {
+    const _foundedUser = await this.entityManager.findOneBy(User, {
+      username: user.username,
+    });
+
+    if (_foundedUser)
+      throw new HttpException('注册用户已存在', HttpStatus.NOT_ACCEPTABLE);
+    const _newUser = new User();
+    [_newUser.username, _newUser.password] = [user.username, user.password];
+    try {
+      await this.entityManager.save(_newUser);
+      return new HttpException('注册成功', HttpStatus.ACCEPTED);
+    } catch (error) {
+      this.logger.error(error);
+      throw new HttpException('注册失败', HttpStatus.NOT_ACCEPTABLE);
+    }
+  }
+
+  async findByUsername(username: string) {
+    const _foundedUser = await this.entityManager.findOne(User, {
+      where: { username },
+      relations: { permissions: true },
+    });
     return _foundedUser;
   }
 }
